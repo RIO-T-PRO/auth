@@ -1,19 +1,19 @@
 import { prisma } from "../db.js";
 import { User } from "@/generated/prisma/client.js";
 
-export const findUserByEmail = (email: string): Promise<User> => {
+export const findUserByEmail = (email: string) => {
   return prisma.user.findUnique({
     where: { email },
   });
 };
 
-export const findUserById = (id: string): Promise<User> => {
+export const findUserById = (id: string) => {
   return prisma.user.findUnique({
     where: { id },
   });
 };
 
-export const findUserByUsername = (username: string): Promise<User> => {
+export const findUserByUsername = (username: string) => {
   return prisma.user.findUnique({
     where: { username },
   });

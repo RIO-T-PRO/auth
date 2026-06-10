@@ -25,7 +25,7 @@ export const findSessionById = (sessionId: string) => {
   });
 };
 
-export const deleteSession = (sessionId: string): Promise<Session> => {
+export const deleteSession = (sessionId: string) => {
   return prisma.session.deleteMany({
     where: {
       id: sessionId,

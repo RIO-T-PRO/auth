@@ -18,9 +18,9 @@ export const register = async (
     if (existingEmail)
       return res.status(409).json({ error: "Email Already in use" });
 
-    const hashedPassword = hashPassword(password);
+    const hashedPassword = await hashPassword(password);
 
-    const user = await createUser(username, email, password);
+    const user = await createUser(username, email, hashedPassword);
 
     const session = await createSession(user.id, createExpirationDate());
 
