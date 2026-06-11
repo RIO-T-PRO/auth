@@ -15,8 +15,11 @@ export const register = async (
 
     const existingEmail = await findUserByEmail(email);
 
-    if (existingEmail)
-      return res.status(409).json({ error: "Email Already in use" });
+    if (existingEmail) {
+      return res.status(409).json({
+        error: "Email already in use",
+      });
+    }
 
     const hashedPassword = await hashPassword(password);
 
@@ -27,15 +30,21 @@ export const register = async (
     setSessionCookie(res, session.id);
 
     return res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
+      status: "success",
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+        },
       },
     });
   } catch (error) {
     console.error("User Registration error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
   }
 };
 
@@ -65,10 +74,20 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
 
     return res.status(200).json({
       status: "success",
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+        },
+      },
     });
   } catch (error) {
     console.error("User login error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
   }
 };
 
@@ -95,7 +114,15 @@ export const logout = async (
 };
 
 export const me = async (req: Request, res: Response): Promise<Response> => {
+  const user = req.user;
   return res.status(200).json({
-    user: req.user,
+    status: "success",
+    data: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
   });
 };

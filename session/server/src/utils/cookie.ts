@@ -8,6 +8,7 @@ export const setSessionCookie = (res: Response, sessionId: string): void => {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: EXPIRES_IN * 60 * 60 * 24 * 1000,
+    path: "/",
   });
 };
 
