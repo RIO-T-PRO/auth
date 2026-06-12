@@ -114,3 +114,17 @@ export const signout = async (
     });
   }
 };
+
+export const me = async (req: Request, res: Response): Promise<Response> => {
+  const user = req.user;
+  return res.status(200).json({
+    status: "success",
+    data: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
+  });
+};
