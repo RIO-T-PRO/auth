@@ -1,10 +1,17 @@
 import express from "express";
-import dotenv from "dotenv";
-
-dotenv.config();
+import authRoutes from "@/routes/auth.js";
+import { env } from "./config/env.js";
 
 const app = express();
 
-const port = process.env.PORT;
+app.use(express.json());
 
-app.listen(port, () => console.log(`Server listening on PORT ${port}`));
+app.use("/auth", authRoutes);
+
+app.get("/", (_, res) => {
+  res.json({ message: "OAuth demo server is running" });
+});
+
+app.listen(env.PORT, () => {
+  console.log(`Server listening on port ${env.PORT}`);
+});
