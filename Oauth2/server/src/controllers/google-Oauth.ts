@@ -1,10 +1,10 @@
 import { env } from "@/config/env.js";
-import { GitHubOAuthService } from "@/services/github-Oauth.js";
+import { GoogleOAuthService } from "@/services/google-Oauth.js";
 import { Request, Response } from "express";
 
-export class GitHubAuthController {
-  static redirectToGitHub(_req: Request, res: Response): void {
-    const url = GitHubOAuthService.getAuthorizeUrl();
+export class GoogleAuthController {
+  static redirectToGoogle(_req: Request, res: Response): void {
+    const url = GoogleOAuthService.getAuthorizeUrl();
     res.redirect(url);
   }
 
@@ -21,8 +21,8 @@ export class GitHubAuthController {
     }
 
     try {
-      const accessToken = await GitHubOAuthService.exchangeCodeForToken(code);
-      const userData = await GitHubOAuthService.fetchUser(accessToken);
+      const accessToken = await GoogleOAuthService.exchangeCodeForToken(code);
+      const userData = await GoogleOAuthService.fetchUser(accessToken);
 
       return res.redirect(
         `${env.FRONTEND_URL}/success?user=${encodeURIComponent(
