@@ -1,6 +1,8 @@
+import axios from "axios";
+
 import { env } from "@/config/env.js";
 import { GitHubEmail, GitHubUser } from "@/types/github.js";
-import axios from "axios";
+import { OAuthUserData } from "@/types/oauth-user-data.js";
 
 export class GitHubOAuthService {
   static getAuthorizeUrl(): string {
@@ -68,9 +70,27 @@ export class GitHubOAuthService {
     const primaryEmail = emails.find(
       (email) => email.primary && email.verified,
     );
-
     const fallbackEmail = emails.find((email) => email.verified);
 
     return primaryEmail?.email || fallbackEmail?.email || null;
+  }
+
+  static async fetchUser(accessToken: string): Promise<OAuthUserData> {
+    const user = await this.fetchGitHubUser(accessToken);
+    const emails = await this.fetchGitHubEmails(accessToken);
+    const email = this.pickVerifiedEmail(emails);
+
+    if (!email) {
+      throw new Error("No verified email found on GitHub account");
+    }
+
+    return {
+      provider: "github",
+      id: user.id,
+      username: user.login,
+      name: user.name || "",
+      avatarUrl: user.avatar_url,
+      email,
+    };
   }
 }
