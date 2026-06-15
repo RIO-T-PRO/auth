@@ -2,7 +2,6 @@ import { Router } from "express";
 
 import { prismaService } from "@/database/prisma.service.js";
 
-import { TokensService } from "@/services/tokens.service.js";
 import { GoogleOAuthService } from "@/services/google-oauth.service.js";
 import { RefreshTokenService } from "@/services/refresh-token.service.js";
 
@@ -17,20 +16,15 @@ import { verifyAccessToken } from "@/middlewares/verify-access-token.js";
 
 const router = Router();
 
-const tokensService = new TokensService();
-
 const userRepo = new UserRepo(prismaService);
-
 const googleAccountRepo = new GoogleAccountRepo(prismaService);
-
-const refreshTokenRepo = new RefreshTokenRepo(prismaService, tokensService);
+const refreshTokenRepo = new RefreshTokenRepo(prismaService);
 
 const googleOAuthService = new GoogleOAuthService();
 
 const refreshTokenService = new RefreshTokenService(
   prismaService,
   refreshTokenRepo,
-  tokensService,
 );
 
 const googleAuthController = new GoogleAuthController(
@@ -38,26 +32,15 @@ const googleAuthController = new GoogleAuthController(
   userRepo,
   googleAccountRepo,
   refreshTokenRepo,
-  tokensService,
 );
 
-const authController = new AuthController(
-  prismaService,
-  refreshTokenService,
-  tokensService,
-);
+const authController = new AuthController(prismaService, refreshTokenService);
 
 router.get("/google/authorize", googleAuthController.authorize);
-
 router.get("/google/callback", googleAuthController.callback);
-
 router.post("/refresh", authController.refresh);
 
-router.get(
-  "/userinfo",
-  verifyAccessToken(tokensService),
-  authController.userinfo,
-);
+router.get("/userinfo", verifyAccessToken, authController.userinfo);
 
 router.post("/logout", authController.logout);
 

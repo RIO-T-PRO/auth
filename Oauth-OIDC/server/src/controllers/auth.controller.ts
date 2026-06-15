@@ -1,27 +1,35 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@/generated/prisma/client.js";
 import { RefreshTokenService } from "@/services/refresh-token.service.js";
-import { TokensService } from "@/services/tokens.service.js";
+import {
+  getRefreshTokenFromCookie,
+  setRefreshTokenCookie,
+  clearRefreshTokenCookie,
+} from "@/utils/index.js";
 
 export class AuthController {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly refreshTokenService: RefreshTokenService,
-    private readonly tokensService: TokensService,
   ) {}
 
   refresh = async (req: Request, res: Response): Promise<Response> => {
-    const refreshToken =
-      req.body?.refresh_token ??
-      this.tokensService.getRefreshTokenFromCookie(req);
+    const refreshToken = getRefreshTokenFromCookie(req);
 
     if (!refreshToken) {
-      return res.status(400).json({ error: "Missing refresh_token" });
+      return res.status(400).json({ error: "Missing refresh_token cookie" });
     }
 
     try {
       const tokens = await this.refreshTokenService.rotate(refreshToken);
-      return res.json(tokens);
+
+      setRefreshTokenCookie(res, tokens.refresh_token);
+
+      return res.json({
+        token_type: tokens.token_type,
+        expires_in: tokens.expires_in,
+        access_token: tokens.access_token,
+      });
     } catch (error: any) {
       return res.status(401).json({ error: error.message || "Refresh failed" });
     }
@@ -58,16 +66,14 @@ export class AuthController {
   };
 
   logout = async (req: Request, res: Response): Promise<Response> => {
-    const refreshToken =
-      req.body?.refresh_token ??
-      this.tokensService.getRefreshTokenFromCookie(req);
+    const refreshToken = getRefreshTokenFromCookie(req);
 
     if (!refreshToken) {
-      return res.status(400).json({ error: "Missing refresh_token" });
+      return res.status(400).json({ error: "Missing refresh_token cookie" });
     }
 
     await this.refreshTokenService.logout(refreshToken);
-    this.tokensService.clearRefreshTokenCookie(res);
+    clearRefreshTokenCookie(res);
 
     return res.json({ success: true });
   };

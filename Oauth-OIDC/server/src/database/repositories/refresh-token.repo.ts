@@ -1,11 +1,8 @@
 import { PrismaClient } from "@/generated/prisma/client.js";
-import { TokensService } from "@/services/tokens.service.js";
+import { hashToken } from "@/utils/index.js";
 
 export class RefreshTokenRepo {
-  constructor(
-    private readonly prisma: PrismaClient,
-    private readonly tokensService: TokensService,
-  ) {}
+  constructor(private readonly prisma: PrismaClient) {}
 
   async create(input: {
     userId: string;
@@ -16,7 +13,7 @@ export class RefreshTokenRepo {
     return this.prisma.refreshToken.create({
       data: {
         userId: input.userId,
-        tokenHash: this.tokensService.hashToken(input.token),
+        tokenHash: hashToken(input.token),
         expiresAt: input.expiresAt,
         rotatedFromId: input.rotatedFromId ?? null,
       },
@@ -25,7 +22,7 @@ export class RefreshTokenRepo {
 
   async findByToken(token: string) {
     return this.prisma.refreshToken.findUnique({
-      where: { tokenHash: this.tokensService.hashToken(token) },
+      where: { tokenHash: hashToken(token) }, // direct call
       include: { user: { include: { googleAccount: true } } },
     });
   }

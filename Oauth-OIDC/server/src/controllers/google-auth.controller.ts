@@ -3,8 +3,12 @@ import { GoogleOAuthService } from "@/services/google-oauth.service.js";
 import { UserRepo } from "@/database/repositories/user.repo.js";
 import { GoogleAccountRepo } from "@/database/repositories/google-account.repo.js";
 import { RefreshTokenRepo } from "@/database/repositories/refresh-token.repo.js";
-import { TokensService } from "@/services/tokens.service.js";
 import { env } from "@/config/env.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  setRefreshTokenCookie,
+} from "@/utils/index.js";
 
 export class GoogleAuthController {
   constructor(
@@ -12,7 +16,6 @@ export class GoogleAuthController {
     private readonly userRepo: UserRepo,
     private readonly googleAccountRepo: GoogleAccountRepo,
     private readonly refreshTokenRepo: RefreshTokenRepo,
-    private readonly tokensService: TokensService,
   ) {}
 
   authorize = (_req: Request, res: Response): void => {
@@ -70,14 +73,16 @@ export class GoogleAuthController {
         expiresAt: new Date(Date.now() + tokenSet.expires_in * 1000),
       });
 
-      const accessToken = this.tokensService.generateAccessToken(user.id);
-      const refreshToken = this.tokensService.generateRefreshToken(user.id);
+      const accessToken = generateAccessToken(user.id);
+      const refreshToken = generateRefreshToken(user.id);
 
       await this.refreshTokenRepo.create({
         userId: user.id,
         token: refreshToken,
         expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_EXPIRES_IN * 1000),
       });
+
+      setRefreshTokenCookie(res, refreshToken);
 
       return res.json({
         provider: "google",
@@ -88,7 +93,6 @@ export class GoogleAuthController {
           avatarUrl: user.avatarUrl,
         },
         access_token: accessToken,
-        refresh_token: refreshToken,
         token_type: "Bearer",
         expires_in: env.ACCESS_TOKEN_EXPIRES_IN,
       });
