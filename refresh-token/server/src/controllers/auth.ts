@@ -1,27 +1,26 @@
-import { env } from "@/config/env.js";
 import {
-  deleteRefreshToken,
-  findRefreshToken,
-  upsertRefreshToken,
-} from "@/database/service/refresh-token.js";
+  clearRefreshTokenCookie,
+  comparePassword,
+  generateToken,
+  getExpiresDate,
+  hashPassword,
+  hashToken,
+  setRefreshTokenCookie,
+  verifyToken,
+} from "@/utils/index.js";
 import {
   createUser,
   findUserByEmail,
   findUserById,
 } from "@/database/service/user.js";
 import { LoginBody, RegisterBody } from "@/schemas/auth.js";
-import {
-  clearRefreshTokenCookie,
-  setRefreshTokenCookie,
-} from "@/utils/cookie.js";
-import { comparePassword, hashPassword } from "@/utils/password.js";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-  getExpiresDate,
-  verifyToken,
-} from "@/utils/token.js";
 import { Request, Response } from "express";
+import { env } from "@/config/env.js";
+import {
+  deleteRefreshToken,
+  findRefreshToken,
+  upsertRefreshToken,
+} from "@/database/service/refresh-token.js";
 
 export const signup = async (req: Request, res: Response) => {
   try {
@@ -35,11 +34,12 @@ export const signup = async (req: Request, res: Response) => {
     const hashedPassword = await hashPassword(password);
     const user = await createUser(name, email, hashedPassword);
 
-    const accessToken = generateAccessToken({ userId: user.id });
-    const refreshToken = generateRefreshToken({ userId: user.id });
+    const accessToken = generateToken("access", user.id);
+    const refreshToken = generateToken("refresh", user.id);
     const expiresAt = getExpiresDate(env.REFRESH_TOKEN_EXPIRES_IN);
+    const hashedRefreshToken = hashToken(refreshToken);
 
-    await upsertRefreshToken(user.id, refreshToken, expiresAt);
+    await upsertRefreshToken(user.id, hashedRefreshToken, expiresAt);
     setRefreshTokenCookie(res, refreshToken);
 
     return res.status(201).json({
@@ -75,11 +75,12 @@ export const signin = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const accessToken = generateAccessToken({ userId: user.id });
-    const refreshToken = generateRefreshToken({ userId: user.id });
+    const accessToken = generateToken("access", user.id);
+    const refreshToken = generateToken("refresh", user.id);
     const expiresAt = getExpiresDate(env.REFRESH_TOKEN_EXPIRES_IN);
+    const hashedRefreshToken = hashToken(refreshToken);
 
-    await upsertRefreshToken(user.id, refreshToken, expiresAt);
+    await upsertRefreshToken(user.id, hashedRefreshToken, expiresAt);
     setRefreshTokenCookie(res, refreshToken);
 
     return res.status(200).json({
@@ -107,11 +108,8 @@ export const signout = async (req: Request, res: Response) => {
 
     if (refreshToken) {
       try {
-        const payload = verifyToken(refreshToken, "refresh") as {
-          userId: string;
-        };
-
-        await deleteRefreshToken(payload.userId);
+        const payload = verifyToken("refresh", refreshToken) as { id: string };
+        await deleteRefreshToken(payload.id);
       } catch {
         // ignore invalid token
       }
@@ -136,36 +134,34 @@ export const refreshToken = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "No refresh token provided" });
     }
 
-    const payload = verifyToken(tokenFromCookie, "refresh") as {
-      userId: string;
-    };
-
-    const storedToken = await findRefreshToken(tokenFromCookie);
+    const payload = verifyToken("refresh", tokenFromCookie) as { id: string };
+    const hashedToken = hashToken(tokenFromCookie);
+    const storedToken = await findRefreshToken(hashedToken);
 
     if (!storedToken) {
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    if (storedToken.userId !== payload.userId) {
+    if (storedToken.userId !== payload.id) {
       return res.status(403).json({ message: "Token mismatch" });
     }
 
     if (storedToken.expiresAt.getTime() < Date.now()) {
-      await deleteRefreshToken(payload.userId);
+      await deleteRefreshToken(payload.id);
       return res.status(403).json({ message: "Refresh token expired" });
     }
 
-    const user = await findUserById(payload.userId);
-
+    const user = await findUserById(payload.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const newAccessToken = generateAccessToken({ userId: user.id });
-    const newRefreshToken = generateRefreshToken({ userId: user.id });
+    const newAccessToken = generateToken("access", user.id);
+    const newRefreshToken = generateToken("refresh", user.id);
     const expiresAt = getExpiresDate(env.REFRESH_TOKEN_EXPIRES_IN);
+    const hashedNewRefreshToken = hashToken(newRefreshToken);
 
-    await upsertRefreshToken(user.id, newRefreshToken, expiresAt);
+    await upsertRefreshToken(user.id, hashedNewRefreshToken, expiresAt);
     setRefreshTokenCookie(res, newRefreshToken);
 
     return res.status(200).json({
