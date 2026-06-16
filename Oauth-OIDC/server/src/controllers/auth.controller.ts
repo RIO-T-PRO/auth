@@ -6,6 +6,7 @@ import {
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
 } from "@/utils/index.js";
+import { env } from "@/config/env.js";
 
 export class AuthController {
   constructor(
@@ -68,12 +69,14 @@ export class AuthController {
   logout = async (req: Request, res: Response): Promise<Response> => {
     const refreshToken = getRefreshTokenFromCookie(req);
 
-    if (!refreshToken) {
-      return res.status(400).json({ error: "Missing refresh_token cookie" });
+    if (refreshToken) {
+      await this.refreshTokenService.logout(refreshToken);
     }
 
-    await this.refreshTokenService.logout(refreshToken);
     clearRefreshTokenCookie(res);
+    res.clearCookie("access_token", {
+      path: "/",
+    });
 
     return res.json({ success: true });
   };

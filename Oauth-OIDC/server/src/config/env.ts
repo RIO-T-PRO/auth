@@ -63,10 +63,6 @@ export class Env {
     return this.require("JWT_REFRESH_SECRET");
   }
 
-  get TOKEN_HASH_SECRET(): string {
-    return this.require("TOKEN_HASH_SECRET");
-  }
-
   get ACCESS_TOKEN_EXPIRES_IN() {
     return Number(process.env.ACCESS_TOKEN_EXPIRES_IN) ?? 900;
   }
