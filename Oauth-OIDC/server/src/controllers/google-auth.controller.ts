@@ -51,6 +51,7 @@ export class GoogleAuthController {
         return res.status(400).json({ error: "Google email is not verified" });
       }
 
+      // Upsert user and Google account (unchanged)
       const user = await this.userRepo.upsertFromGoogle({
         email,
         name: profile.name ?? claims.name ?? null,
@@ -73,6 +74,7 @@ export class GoogleAuthController {
         expiresAt: new Date(Date.now() + tokenSet.expires_in * 1000),
       });
 
+      // Create tokens for  API
       const accessToken = generateAccessToken(user.id);
       const refreshToken = generateRefreshToken(user.id);
 
@@ -82,20 +84,10 @@ export class GoogleAuthController {
         expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_EXPIRES_IN * 1000),
       });
 
+      // Set the refresh token cookie (for future /auth/refresh calls)
       setRefreshTokenCookie(res, refreshToken);
 
-      return res.json({
-        provider: "google",
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          avatarUrl: user.avatarUrl,
-        },
-        access_token: accessToken,
-        token_type: "Bearer",
-        expires_in: env.ACCESS_TOKEN_EXPIRES_IN,
-      });
+      return res.redirect(env.FRONTEND_URL);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: "Google authentication failed" });

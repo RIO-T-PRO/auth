@@ -11,6 +11,7 @@ export function setRefreshTokenCookie(res: Response, token: string): void {
     secure: env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: env.REFRESH_TOKEN_COOKIE_DAYS * 24 * 60 * 60 * 1000,
+    path: "/",
   });
 }
 
